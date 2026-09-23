@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>핑계의 정석 (Excuse Master) - AI 맞춤 약속 취소 솔루션</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        },
+                        accent: {
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts (Inter & Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-100 bg-slate-950">
+
+    <!-- App Header -->
+    <header class="sticky top-0 z-40 w-full glass-card border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="app.switchTab('wizard')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-accent-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i class="fa-solid fa-ghost text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">
+                        핑계의 정석
+                    </h1>
+                    <p class="text-[10px] text-slate-400 -mt-1 font-mono">EXCUSE MASTER AI</p>
+                </div>
+            </div>
+
+            <nav class="flex items-center space-x-2">
+                <button onclick="app.switchTab('wizard')" id="nav-wizard" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-brand-600 text-white shadow-md shadow-brand-600/30">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 핑계 생성
+                </button>
+                <button onclick="app.switchTab('history')" id="nav-history" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-clock-rotate-left mr-1"></i> 이력 & 대상
+                </button>
+                <button onclick="app.switchTab('roadmap')" id="nav-roadmap" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800 hidden sm:inline-block">
+                    <i class="fa-solid fa-compass mr-1"></i> 비전 & 발전방향
+                </button>
+            </nav>
+
+            <div id="auth-status-container" class="flex items-center space-x-2">
+                <!-- Auth status rendered via JS -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Shell -->
+    <main class="max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 flex-grow">
+
+        <!-- AUTH MODAL -->
+        <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm hidden">
+            <div class="glass-card w-full max-w-md p-6 rounded-2xl border border-slate-700 shadow-2xl relative">
+                <button onclick="app.closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+                <div class="text-center mb-6">
+                    <div class="w-12 h-12 rounded-full bg-brand-500/10 text-brand-500 flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-user-shield text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">사용자 식별 로그인</h3>
+                    <p class="text-xs text-slate-400 mt-1">상대방별 사용한 핑계 중복 방지를 위한 계정 연결</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">이메일</label>
+                        <input type="email" id="auth-email" placeholder="example@domain.com" class="w-full px-3 py-2.5 rounded-xl glass-input text-sm text-white focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">비밀번호</label>
+                        <input type="password" id="auth-password" placeholder="••••••••" class="w-full px-3 py-2.5 rounded-xl glass-input text-sm text-white focus:ring-2 focus:ring-brand-500">
+                    </div>
+
+                    <div class="pt-2 grid grid-cols-2 gap-2">
+                        <button onclick="app.loginEmail()" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all shadow-lg shadow-brand-600/30">
+                            로그인
+                        </button>
+                        <button onclick="app.registerEmail()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700">
+                            회원가입
+                        </button>
+                    </div>
+
+                    <div class="relative my-4">
+                        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+                        <div class="relative flex justify-center text-xs"><span class="px-2 bg-slate-900 text-slate-500">또는</span></div>
+                    </div>
+
+                    <button onclick="app.loginAnonymously()" class="w-full py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-medium transition-all flex items-center justify-center border border-slate-700">
+                        <i class="fa-solid fa-user-secret mr-2"></i> 익명으로 빠르고 편하게 시작하기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 1: WIZARD (PING-GYE GENERATOR) -->
+        <section id="view-wizard" class="space-y-6">
+            
+            <!-- Welcome Banner / Context -->
+            <div class="glass-card p-5 sm:p-6 rounded-2xl border-l-4 border-l-brand-500 relative overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-500/20 text-brand-400 border border-brand-500/30">AI Excuse Engine v3.1</span>
+                            <span id="user-sync-badge" class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                                <i class="fa-solid fa-circle text-[8px] text-amber-500 mr-1"></i> 익명 세션 저장 중
+                            </span>
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-black text-white mt-1">상황별 맞춤 핑계 설계 진단 wizard</h2>
+                        <p class="text-xs sm:text-sm text-slate-400 mt-1">상대와의 관계, 시간, 상황 요소를 분석하여 손상 없이 약속을 연기/취소합니다.</p>
+                    </div>
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <button onclick="app.resetWizard()" class="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/50">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> 새로 작성
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEPPER PROGRESS BAR -->
+            <div class="grid grid-cols-4 gap-2">
+                <div id="step-indicator-1" class="h-1.5 rounded-full bg-brand-500 transition-all duration-300"></div>
+                <div id="step-indicator-2" class="h-1.5 rounded-full bg-slate-800 transition-all duration-300"></div>
+                <div id="step-indicator-3" class="h-1.5 rounded-full bg-slate-800 transition-all duration-300"></div>
+                <div id="step-indicator-4" class="h-1.5 rounded-full bg-slate-800 transition-all duration-300"></div>
+            </div>
+
+            <!-- STEP CONTAINER -->
+            <div class="glass-card p-6 sm:p-8 rounded-2xl border border-slate-800 min-h-[420px] flex flex-col justify-between">
+                
+                <!-- STEP 1: TARGET & RELATIONSHIP -->
+                <div id="wizard-step-1" class="wizard-step space-y-6">
+                    <div>
+                        <span class="text-xs font-semibold text-brand-400 uppercase tracking-wider">STEP 1 / 4</span>
+                        <h3 class="text-lg font-bold text-white mt-1">약속 상대 및 관계 지정</h3>
+                        <p class="text-xs text-slate-400">누구와의 약속인가요? 이름을 적으시면 이 상대에게 이전에 쓴 핑계를 자동 기억합니다.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1.5">상대방 이름 또는 칭호 <span class="text-brand-400">*</span></label>
+                            <div class="relative">
+                                <input type="text" id="target-name" placeholder="예: 김철수 부장님, 대학동창 민지, 영희" class="w-full pl-10 pr-4 py-3 rounded-xl glass-input text-sm text-white placeholder-slate-500">
+                                <i class="fa-solid fa-user-tag absolute left-3.5 top-3.5 text-slate-500 text-sm"></i>
+                            </div>
+                            <div id="target-history-alert" class="mt-2 text-xs text-amber-400 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 hidden">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> <span id="target-history-text"></span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-2">상대와의 관계성</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="relationship-options">
+                                <!-- Option Cards -->
+                                <button type="button" data-val="직장 상사/동료" onclick="app.selectOption('relationship', '직장 상사/동료')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-briefcase text-sm"></i></div>
+                                    <span class="text-xs font-medium">직장 상사/동료</span>
+                                </button>
+                                <button type="button" data-val="친한 친구" onclick="app.selectOption('relationship', '친한 친구')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-user-group text-sm"></i></div>
+                                    <span class="text-xs font-medium">친한 친구</span>
+                                </button>
+                                <button type="button" data-val="연인/소개팅" onclick="app.selectOption('relationship', '연인/소개팅')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-pink-500/10 text-pink-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-heart text-sm"></i></div>
+                                    <span class="text-xs font-medium">연인 / 소개팅</span>
+                                </button>
+                                <button type="button" data-val="선후배/아는사람" onclick="app.selectOption('relationship', '선후배/아는사람')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-graduation-cap text-sm"></i></div>
+                                    <span class="text-xs font-medium">선후배 / 지인</span>
+                                </button>
+                                <button type="button" data-val="친척/가족" onclick="app.selectOption('relationship', '친척/가족')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-house-chimney text-sm"></i></div>
+                                    <span class="text-xs font-medium">친척 / 가족</span>
+                                </button>
+                                <button type="button" data-val="어색한 비즈니스 관계" onclick="app.selectOption('relationship', '어색한 비즈니스 관계')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-handshake text-sm"></i></div>
+                                    <span class="text-xs font-medium">어색한 비즈니스</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: TIME REMAINING -->
+                <div id="wizard-step-2" class="wizard-step hidden space-y-6">
+                    <div>
+                        <span class="text-xs font-semibold text-brand-400 uppercase tracking-wider">STEP 2 / 4</span>
+                        <h3 class="text-lg font-bold text-white mt-1">약속 시점 및 남은 시간</h3>
+                        <p class="text-xs text-slate-400">약속 시간과의 간격에 따라 핑계의 긴급성 및 타당성이 크게 달라집니다.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="time-options">
+                        <button type="button" data-val="1시간 이내 (직전)" onclick="app.selectOption('time', '1시간 이내 (직전)')" class="option-btn p-4 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-start space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-bolt text-base"></i></div>
+                            <div>
+                                <div class="text-sm font-semibold text-white">바로 직전 (1시간 이내)</div>
+                                <div class="text-xs text-slate-400 mt-0.5">불가항력적인 돌발 상황(사고, 급체, 집안 사고 등)만 통함</div>
+                            </div>
+                        </button>
+                        <button type="button" data-val="몇 시간 전 (당일)" onclick="app.selectOption('time', '몇 시간 전 (당일)')" class="option-btn p-4 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-start space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-clock text-base"></i></div>
+                            <div>
+                                <div class="text-sm font-semibold text-white">몇 시간 전 (오늘 당일)</div>
+                                <div class="text-xs text-slate-400 mt-0.5">갑작스러운 야근, 컨디션 급락, 긴급 수리 문제 적합</div>
+                            </div>
+                        </button>
+                        <button type="button" data-val="내일 / 하루 전" onclick="app.selectOption('time', '내일 / 하루 전')" class="option-btn p-4 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-start space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-calendar-day text-base"></i></div>
+                            <div>
+                                <div class="text-sm font-semibold text-white">내일 (하루 전)</div>
+                                <div class="text-xs text-slate-400 mt-0.5">미리 예고된 업무, 몸살 기운, 가정을 위한 대처 가능</div>
+                            </div>
+                        </button>
+                        <button type="button" data-val="며칠 전 (여유 있음)" onclick="app.selectOption('time', '며칠 전 (여유 있음)')" class="option-btn p-4 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-start space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-calendar-week text-base"></i></div>
+                            <div>
+                                <div class="text-sm font-semibold text-white">며칠 전 (충분한 여유)</div>
+                                <div class="text-xs text-slate-400 mt-0.5">일정 중복, 출장, 정중한 스케줄 조정 멘트 권장</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: EXCUSE CATEGORY -->
+                <div id="wizard-step-3" class="wizard-step hidden space-y-6">
+                    <div>
+                        <span class="text-xs font-semibold text-brand-400 uppercase tracking-wider">STEP 3 / 4</span>
+                        <h3 class="text-lg font-bold text-white mt-1">핑계 테마 및 카테고리</h3>
+                        <p class="text-xs text-slate-400">선택하신 관계와 시점에 가장 자연스러운 원인을 선정하세요.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="category-options">
+                        <button type="button" data-val="급체/건강이상/병원" onclick="app.selectOption('category', '급체/건강이상/병원')" class="option-btn p-3.5 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-kit-medical text-base"></i></div>
+                            <div>
+                                <div class="text-xs font-bold text-white">급체 / 건강 이상 / 병원</div>
+                                <div class="text-[11px] text-slate-400">식중독, 열, 급체 등 반박하기 힘든 신체 문제</div>
+                            </div>
+                        </button>
+                        <button type="button" data-val="갑작스러운 야근/긴급업무" onclick="app.selectOption('category', '갑작스러운 야근/긴급업무')" class="option-btn p-3.5 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-laptop-code text-base"></i></div>
+                            <div>
+                                <div class="text-xs font-bold text-white">갑작스러운 야근 / 긴급 업무</div>
+                                <div class="text-[11px] text-slate-400">상사 지시, 서버/이슈 대응, 긴급 호출</div>
+                            </div>
+                        </button>
+                        <button type="button" data-val="가전/수리/집안 누수/열쇠" onclick="app.selectOption('category', '가전/수리/집안 누수/열쇠')" class="option-btn p-3.5 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-wrench text-base"></i></div>
+                            <div>
+                                <div class="text-xs font-bold text-white">집안 돌발 이슈 (누수/수리)</div>
+                                <div class="text-[11px] text-slate-400">누수, 기사 방문, 도어락 고장 등 집안 고립</div>
+                            </div>
+                        </button>
+                        <button type="button" data-val="교통사고/차량고장/지연" onclick="app.selectOption('category', '교통사고/차량고장/지연')" class="option-btn p-3.5 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-car-burst text-base"></i></div>
+                            <div>
+                                <div class="text-xs font-bold text-white">교통 문제 / 차량 고장</div>
+                                <div class="text-[11px] text-slate-400">지하철/버스 심각 지연, 방전, 접촉 사고</div>
+                            </div>
+                        </button>
+                        <button type="button" data-val="심각한 컨디션 난조/번아웃" onclick="app.selectOption('category', '심각한 컨디션 난조/번아웃')" class="option-btn p-3.5 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-battery-quarter text-base"></i></div>
+                            <div>
+                                <div class="text-xs font-bold text-white">심각한 번아웃 / 컨디션 저하</div>
+                                <div class="text-[11px] text-slate-400">솔직하게 미안함을 전하는 에너제틱 탈진</div>
+                            </div>
+                        </button>
+                        <button type="button" data-val="가족/친척 긴급 호출" onclick="app.selectOption('category', '가족/친척 긴급 호출')" class="option-btn p-3.5 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all flex items-center space-x-3">
+                            <div class="w-9 h-9 rounded-lg bg-pink-500/10 text-pink-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-people-roof text-base"></i></div>
+                            <div>
+                                <div class="text-xs font-bold text-white">가족 / 친척 긴급 경조사</div>
+                                <div class="text-[11px] text-slate-400">부모님 부탁, 갑작스러운 집안 일손 지원</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 4: TONE & DETAILS -->
+                <div id="wizard-step-4" class="wizard-step hidden space-y-6">
+                    <div>
+                        <span class="text-xs font-semibold text-brand-400 uppercase tracking-wider">STEP 4 / 4</span>
+                        <h3 class="text-lg font-bold text-white mt-1">어조 세팅 및 세부 디테일</h3>
+                        <p class="text-xs text-slate-400">메시지의 톤앤매너와 추가 특이사항을 지정해 정밀도를 높입니다.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-2">메시지 어조 (Tone)</label>
+                            <div class="grid grid-cols-2 gap-2.5" id="tone-options">
+                                <button type="button" data-val="매우 정중함/극존호" onclick="app.selectOption('tone', '매우 정중함/극존호')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all text-xs font-medium">
+                                    🙇‍♂️ 매우 정중함 (상사, 격식)
+                                </button>
+                                <button type="button" data-val="미안함 극대화/죄송함" onclick="app.selectOption('tone', '미안함 극대화/죄송함')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all text-xs font-medium">
+                                    🥺 미안함 극대화 (감성 소구)
+                                </button>
+                                <button type="button" data-val="정석적이고 깔끔함" onclick="app.selectOption('tone', '정석적이고 깔끔함')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all text-xs font-medium">
+                                    👌 정석적 & 드라이함
+                                </button>
+                                <button type="button" data-val="친근함/솔직담백" onclick="app.selectOption('tone', '친근함/솔직담백')" class="option-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-left transition-all text-xs font-medium">
+                                    💬 친근함 / 솔직 (친구 사이)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1.5">추가 고려사항 (선택)</label>
+                            <textarea id="custom-details" rows="2" placeholder="예: 다음 주에 내가 밥 산다고 덧붙여줘 / 나중에 선물 보낸다고 해줘 등..." class="w-full p-3 rounded-xl glass-input text-xs text-white placeholder-slate-500 resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NAVIGATION BUTTONS -->
+                <div class="flex items-center justify-between pt-6 border-t border-slate-800 mt-6">
+                    <button type="button" id="btn-prev" onclick="app.prevStep()" class="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-xs font-medium hover:bg-slate-800 transition-all text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-chevron-left mr-1.5"></i> 이전
+                    </button>
+                    
+                    <button type="button" id="btn-next" onclick="app.nextStep()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-500 hover:to-accent-500 text-white text-xs font-bold transition-all shadow-lg shadow-brand-500/25 flex items-center">
+                        <span>다음 단계</span> <i class="fa-solid fa-chevron-right ml-1.5"></i>
+                    </button>
+                    
+                    <button type="button" id="btn-generate" onclick="app.generateExcuse()" class="px-7 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/30 flex items-center hidden">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> AI 핑계 3종 생성하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI GENERATED RESULTS SECTION -->
+            <div id="results-section" class="hidden space-y-6 pt-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-black text-white flex items-center">
+                            <i class="fa-solid fa-sparkles text-amber-400 mr-2"></i> AI 처방 맞춤 핑계 메시지 3종
+                        </h3>
+                        <p class="text-xs text-slate-400">가장 마음에 드는 메시지를 복사하거나 카카오톡으로 전송하세요.</p>
+                    </div>
+                    <span id="target-remembered-tag" class="text-[11px] px-2.5 py-1 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                        <i class="fa-solid fa-database mr-1"></i> 이전 히스토리 반영됨
+                    </span>
+                </div>
+
+                <!-- LOADING SPINNER -->
+                <div id="loading-spinner" class="glass-card p-12 rounded-2xl text-center space-y-4">
+                    <div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p class="text-sm font-semibold text-slate-200">상황 진단 알고리즘 실행 및 AI 핑계 문장 조율 중...</p>
+                    <p class="text-xs text-slate-500">동일한 상대에게 썼던 이전 핑계와 겹치지 않는지 감지하고 있습니다.</p>
+                </div>
+
+                <!-- CARDS GRID -->
+                <div id="cards-container" class="grid grid-cols-1 md:grid-cols-3 gap-4 hidden">
+                    <!-- Cards will be populated by JS -->
+                </div>
+
+                <!-- AI RISK & TIP REPORT CARD -->
+                <div id="report-card" class="glass-card p-5 rounded-2xl border border-slate-800 bg-slate-900/90 hidden space-y-3">
+                    <div class="flex items-center space-x-2 text-amber-400">
+                        <i class="fa-solid fa-shield-halved text-sm"></i>
+                        <h4 class="text-xs font-bold uppercase tracking-wider">AI 리스크 진단 & 관계 방어 전략</h4>
+                    </div>
+                    <p id="risk-analysis-text" class="text-xs text-slate-300 leading-relaxed"></p>
+                    <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                        <span><i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> 추천 사후 대처: <span id="recommended-next-step" class="text-slate-200"></span></span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- VIEW 2: HISTORY & TARGET MANAGER -->
+        <section id="view-history" class="hidden space-y-6">
+            <div class="glass-card p-6 rounded-2xl border border-slate-800">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">사용한 핑계 히스토리 & 상대방 블랙리스트</h2>
+                        <p class="text-xs text-slate-400 mt-1">특정 상대에게 어떤 핑계를 대었는지 조회하고 관리합니다.</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <span class="text-2xl font-black text-brand-400" id="stat-total-count">0</span>
+                            <span class="text-xs text-slate-400 block">회피한 총 약속 수</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target Filter Pills -->
+            <div class="flex items-center space-x-2 overflow-x-auto pb-2 custom-scrollbar" id="target-filter-pills">
+                <!-- Pills populated via JS -->
+            </div>
+
+            <!-- History List -->
+            <div class="space-y-3" id="history-list-container">
+                <!-- History Cards via JS -->
+            </div>
+        </section>
+
+        <!-- VIEW 3: ROADMAP & FUTURE ENHANCEMENTS -->
+        <section id="view-roadmap" class="hidden space-y-6">
+            <div class="glass-card p-6 rounded-2xl border border-slate-800">
+                <h2 class="text-xl font-bold text-white mb-2">핑계의 정석 (Excuse Master) 시스템 구조 & 발전 방향</h2>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    본 서비스는 단순 랜덤 텍스트 생성이 아닌, 사용자-상대방 연관 데이터베이스와 Gemini API Prompt Engineering을 결합하여 관계의 손상을 최소화하는 회피 기술을 제공합니다.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center font-bold">1</div>
+                    <h3 class="text-sm font-bold text-white">현 알고리즘 구축 포인트</h3>
+                    <ul class="text-xs text-slate-400 space-y-2 list-disc list-inside">
+                        <li><strong>상대별 히스토리 메모리:</strong> Firestore DB 연동으로 특정 인물(예: 부장님)에게 중복 핑계가 지급되는 것을 방지.</li>
+                        <li><strong>시간적 타당성 계산:</strong> 약속 남은 시간(1시간 전 vs 하루 전)에 따라 허용 가능한 핑계 카테고리를 프롬프트 단에서 자동 제한.</li>
+                        <li><strong>Structured JSON Output:</strong> Gemini API의 `responseSchema`를 활용하여 3종 옵션, 신뢰도 점수, 대응 팁을 정형화 데이터로 반환.</li>
+                    </ul>
+                </div>
+
+                <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="w-8 h-8 rounded-lg bg-accent-500/10 text-accent-400 flex items-center justify-center font-bold">2</div>
+                    <h3 class="text-sm font-bold text-white">향후 기능 보완 및 확장 로드맵</h3>
+                    <ul class="text-xs text-slate-400 space-y-2 list-disc list-inside">
+                        <li><strong>AI 음성 통화 / TTS 핑계 연동:</strong> Gemini Live API 및 TTS API를 결합하여 실제 진단서 알림음이나 쿨럭거리는 목소리 핑계 음성 생성.</li>
+                        <li><strong>AI 이미지 증거 연동:</strong> Gemini Nano Banana(Flash Image) 모듈로 '지하철 고장 안내판', '병원 접수표' 등의 가상 이미지 증거 생성 기능 연동.</li>
+                        <li><strong>캘린더 연동 자동 일정 재조정:</strong> 핑계 발송 후 상대방의 긍정적 답장에 맞춰 Google Calendar 자동 여유 일정 제안.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full glass-card border-t border-slate-800 py-4 mt-8">
+        <div class="max-w-5xl mx-auto px-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>© 2026 Excuse Master AI. All rights reserved.</span>
+            <span class="text-[11px] text-slate-600">Built with Gemini 3 Flash & Firebase Firestore</span>
+        </div>
+    </footer>
+
+    <!-- Firebase Script ESM & Main App Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            onAuthStateChanged,
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            collection, 
+            getDocs, 
+            addDoc,
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Environment Configs
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'excuse-master-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "dummy-key",
+            authDomain: "dummy.firebaseapp.com",
+            projectId: "dummy-project",
+            storageBucket: "dummy.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        const appInstance = initializeApp(firebaseConfig);
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance);
+
+        // Global State Management
+        window.appState = {
+            user: null,
+            userId: null,
+            currentStep: 1,
+            wizardData: {
+                targetName: '',
+                relationship: '친한 친구',
+                time: '몇 시간 전 (당일)',
+                category: '급체/건강이상/병원',
+                tone: '미안함 극대화/죄송함',
+                customDetails: ''
+            },
+            targetHistoryList: [],
+            generatedOptions: null,
+            history: []
+        };
+
+        window.app = {
+            init: async function() {
+                this.bindEvents();
+                this.setupAuth();
+            },
+
+            // Setup Authentication
+            setupAuth: function() {
+                const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                
+                if (initialToken) {
+                    signInWithCustomToken(auth, initialToken).catch(() => {
+                        signInAnonymously(auth);
+                    });
+                } else {
+                    signInAnonymously(auth).catch((err) => console.debug("Auth error:", err));
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        window.appState.user = user;
+                        window.appState.userId = user.uid;
+                        this.updateAuthUI(user);
+                        this.listenToHistory();
+                    } else {
+                        window.appState.user = null;
+                        window.appState.userId = null;
+                        this.updateAuthUI(null);
+                    }
+                });
+            },
+
+            updateAuthUI: function(user) {
+                const container = document.getElementById('auth-status-container');
+                const syncBadge = document.getElementById('user-sync-badge');
+
+                if (user) {
+                    const isAnon = user.isAnonymous;
+                    container.innerHTML = `
+                        <div class="flex items-center space-x-2 text-xs">
+                            <span class="text-slate-300 font-mono hidden sm:inline">${isAnon ? '익명계정' : user.email}</span>
+                            <button onclick="app.openAuthModal()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700">
+                                ${isAnon ? '로그인' : '계정관리'}
+                            </button>
+                        </div>
+                    `;
+
+                    syncBadge.innerHTML = isAnon 
+                        ? `<i class="fa-solid fa-circle text-[8px] text-amber-500 mr-1"></i> 익명 세션 저장 중`
+                        : `<i class="fa-solid fa-shield-check text-[8px] text-emerald-400 mr-1"></i> 클라우드 동기화 됨`;
+                } else {
+                    container.innerHTML = `
+                        <button onclick="app.openAuthModal()" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-semibold">
+                            로그인 / 시작
+                        </button>
+                    `;
+                }
+            },
+
+            openAuthModal: () => document.getElementById('auth-modal').classList.remove('hidden'),
+            closeAuthModal: () => document.getElementById('auth-modal').classList.add('hidden'),
+
+            loginEmail: async function() {
+                const e = document.getElementById('auth-email').value;
+                const p = document.getElementById('auth-password').value;
+                if (!e || !p) return this.showToast('이메일과 비밀번호를 입력해주세요.');
+                try {
+                    await signInWithEmailAndPassword(auth, e, p);
+                    this.closeAuthModal();
+                    this.showToast('로그인 성공!');
+                } catch(err) {
+                    this.showToast('로그인 실패: ' + err.message);
+                }
+            },
+
+            registerEmail: async function() {
+                const e = document.getElementById('auth-email').value;
+                const p = document.getElementById('auth-password').value;
+                if (!e || !p) return this.showToast('이메일과 비밀번호를 입력해주세요.');
+                try {
+                    await createUserWithEmailAndPassword(auth, e, p);
+                    this.closeAuthModal();
+                    this.showToast('회원가입 완료!');
+                } catch(err) {
+                    this.showToast('회원가입 실패: ' + err.message);
+                }
+            },
+
+            loginAnonymously: async function() {
+                try {
+                    await signInAnonymously(auth);
+                    this.closeAuthModal();
+                    this.showToast('익명으로 연결되었습니다.');
+                } catch(err) {
+                    this.showToast('익명 로그인 실패');
+                }
+            },
+
+            switchTab: function(tabName) {
+                ['wizard', 'history', 'roadmap'].forEach(t => {
+                    const view = document.getElementById(`view-${t}`);
+                    const nav = document.getElementById(`nav-${t}`);
+                    if (t === tabName) {
+                        view.classList.remove('hidden');
+                        if(nav) {
+                            nav.className = "px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-brand-600 text-white shadow-md shadow-brand-600/30";
+                        }
+                    } else {
+                        view.classList.add('hidden');
+                        if(nav) {
+                            nav.className = "px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800";
+                        }
+                    }
+                });
+            },
+
+            bindEvents: function() {
+                const targetInput = document.getElementById('target-name');
+                targetInput.addEventListener('input', (e) => {
+                    window.appState.wizardData.targetName = e.target.value.trim();
+                    this.checkTargetHistory(e.target.value.trim());
+                });
+            },
+
+            selectOption: function(type, value) {
+                window.appState.wizardData[type] = value;
+                
+                // Highlight UI option
+                const container = document.getElementById(`${type}-options`);
+                if(container) {
+                    const btns = container.querySelectorAll('.option-btn');
+                    btns.forEach(b => {
+                        if(b.getAttribute('data-val') === value) {
+                            b.classList.add('border-brand-500', 'bg-brand-500/10', 'text-white');
+                            b.classList.remove('border-slate-700', 'bg-slate-900/50');
+                        } else {
+                            b.classList.remove('border-brand-500', 'bg-brand-500/10');
+                            b.classList.add('border-slate-700', 'bg-slate-900/50');
+                        }
+                    });
+                }
+            },
+
+            nextStep: function() {
+                if (window.appState.currentStep === 1) {
+                    if (!window.appState.wizardData.targetName) {
+                        this.showToast('상대방 이름이나 칭호를 적어주세요.');
+                        return;
+                    }
+                }
+                if (window.appState.currentStep < 4) {
+                    window.appState.currentStep++;
+                    this.renderWizardStep();
+                }
+            },
+
+            prevStep: function() {
+                if (window.appState.currentStep > 1) {
+                    window.appState.currentStep--;
+                    this.renderWizardStep();
+                }
+            },
+
+            renderWizardStep: function() {
+                const step = window.appState.currentStep;
+                for (let i = 1; i <= 4; i++) {
+                    const stepEl = document.getElementById(`wizard-step-${i}`);
+                    const indEl = document.getElementById(`step-indicator-${i}`);
+                    if (i === step) {
+                        stepEl.classList.remove('hidden');
+                        indEl.className = "h-1.5 rounded-full bg-brand-500 transition-all duration-300";
+                    } else {
+                        stepEl.classList.add('hidden');
+                        indEl.className = `h-1.5 rounded-full ${i < step ? 'bg-brand-600/50' : 'bg-slate-800'} transition-all duration-300`;
+                    }
+                }
+
+                const btnPrev = document.getElementById('btn-prev');
+                const btnNext = document.getElementById('btn-next');
+                const btnGen = document.getElementById('btn-generate');
+
+                btnPrev.disabled = (step === 1);
+
+                if (step === 4) {
+                    btnNext.classList.add('hidden');
+                    btnGen.classList.remove('hidden');
+                } else {
+                    btnNext.classList.remove('hidden');
+                    btnGen.classList.add('hidden');
+                }
+            },
+
+            resetWizard: function() {
+                window.appState.currentStep = 1;
+                document.getElementById('target-name').value = '';
+                document.getElementById('custom-details').value = '';
+                window.appState.wizardData.targetName = '';
+                document.getElementById('target-history-alert').classList.add('hidden');
+                document.getElementById('results-section').classList.add('hidden');
+                this.renderWizardStep();
+            },
+
+            checkTargetHistory: function(name) {
+                if (!name) {
+                    document.getElementById('target-history-alert').classList.add('hidden');
+                    return;
+                }
+                // Filter stored history for this target
+                const matches = window.appState.history.filter(h => h.targetName.toLowerCase() === name.toLowerCase());
+                const alertBox = document.getElementById('target-history-alert');
+                const alertText = document.getElementById('target-history-text');
+
+                if (matches.length > 0) {
+                    const lastExcuse = matches[0];
+                    alertBox.classList.remove('hidden');
+                    alertText.innerText = `'${name}'님에게 사용한 핑계 ${matches.length}건이 기억에 남아있습니다. (최근 핑계: ${lastExcuse.category})`;
+                    window.appState.targetHistoryList = matches.map(m => m.usedExcuse);
+                } else {
+                    alertBox.classList.add('hidden');
+                    window.appState.targetHistoryList = [];
+                }
+            },
+
+            generateExcuse: async function() {
+                const data = window.appState.wizardData;
+                data.customDetails = document.getElementById('custom-details').value;
+
+                // UI loading state
+                const resultsSection = document.getElementById('results-section');
+                const loadingSpinner = document.getElementById('loading-spinner');
+                const cardsContainer = document.getElementById('cards-container');
+                const reportCard = document.getElementById('report-card');
+
+                resultsSection.classList.remove('hidden');
+                loadingSpinner.classList.remove('hidden');
+                cardsContainer.classList.add('hidden');
+                reportCard.classList.add('hidden');
+
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+
+                // Construct system and user prompt for Gemini API
+                const systemPrompt = `당신은 한국인의 인간관계와 미묘한 사회적 맥락을 완벽히 이해하는 '약속 취소 및 핑계 컨설턴트' 전문가입니다.
+사용자가 제공한 약속 상황, 상대와의 관계, 남은 시간, 핑계 테마 및 어조를 종합 고려하여 상대방이 기분 나쁘지 않게 납득할 만한 최적의 핑계 메시지 3가지를 생성하십시오.
+
+반드시 아래 규칙을 준수하세요:
+1. 중복 금지: 이전에 이 상대방에게 사용했던 핑계 목록이 주어지면, 절대로 유사한 원인의 핑계를 대지 마십시오.
+2. 타당성 검증: 약속 남은 시간(예: 1시간 전)과 핑계 내용(예: 해외 출장 등 얼토당토않은 것 금지)이 논리적으로 부합해야 합니다.
+3. 3개 옵션 구분:
+   - Option A: [핵심 요약형] 군더더기 없이 짧고 단호하게 미안함을 전하는 타입.
+   - Option B: [정석 설명형] 상황을 구체적이고 정황 있게 설명하며 설득력을 높이는 타입.
+   - Option C: [감성/공감형] 상대방 기분을 세심하게 배려하고 차후 더 좋은 약속을 약속하는 타입.
+4. 모든 문장은 아주 자연스러운 한국어 구어체(카톡/문자) 스타일로 작성하세요.`;
+
+                const previousExcusesText = window.appState.targetHistoryList.length > 0
+                    ? `[주의: 이전에 '${data.targetName}'에게 이미 썼던 핑계들 (절대 중복 금지)]: ${window.appState.targetHistoryList.join(' / ')}`
+                    : `이 상대에게 사용한 과거 핑계 없음 (신규)`;
+
+                const userQuery = `
+- 상대방 이름/칭호: ${data.targetName}
+- 관계: ${data.relationship}
+- 약속 남은 시간: ${data.time}
+- 원하는 핑계 테마: ${data.category}
+- 요구하는 어조: ${data.tone}
+- 추가 요청사항: ${data.customDetails || '없음'}
+- 과거 이력: ${previousExcusesText}
+
+위 조건을 고려하여 JSON 형식으로 결과를 응답하세요.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "options": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "type": { "type": "STRING" },
+                                            "title": { "type": "STRING" },
+                                            "message": { "type": "STRING" },
+                                            "credibility": { "type": "NUMBER" },
+                                            "tip": { "type": "STRING" }
+                                        },
+                                        "propertyOrdering": ["type", "title", "message", "credibility", "tip"]
+                                    }
+                                },
+                                "riskAnalysis": { "type": "STRING" },
+                                "recommendedNextStep": { "type": "STRING" }
+                            },
+                            "propertyOrdering": ["options", "riskAnalysis", "recommendedNextStep"]
+                        }
+                    }
+                };
+
+                const apiKey = ""; // Canvas handles auto injection
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (jsonText) {
+                        const parsedData = JSON.parse(jsonText);
+                        window.appState.generatedOptions = parsedData;
+                        this.renderResults(parsedData);
+                    } else {
+                        throw new Error("유효한 생성 결과를 받지 못했습니다.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    this.showToast('핑계 생성 중 오류가 발생했습니다. 다시 시도해 주세요.');
+                    loadingSpinner.classList.add('hidden');
+                }
+            },
+
+            renderResults: function(data) {
+                const loadingSpinner = document.getElementById('loading-spinner');
+                const cardsContainer = document.getElementById('cards-container');
+                const reportCard = document.getElementById('report-card');
+
+                loadingSpinner.classList.add('hidden');
+                cardsContainer.classList.remove('hidden');
+                reportCard.classList.remove('hidden');
+
+                cardsContainer.innerHTML = '';
+
+                data.options.forEach((opt, idx) => {
+                    const card = document.createElement('div');
+                    card.className = "glass-card p-5 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-brand-500/50 transition-all relative group";
+
+                    const badgeColor = opt.type === 'A' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' 
+                                     : opt.type === 'B' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' 
+                                     : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+
+                    card.innerHTML = `
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${badgeColor}">
+                                    ${opt.title}
+                                </span>
+                                <div class="text-right">
+                                    <span class="text-[10px] text-slate-400 block">신뢰도</span>
+                                    <span class="text-xs font-bold text-emerald-400">${opt.credibility}%</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 text-xs sm:text-sm text-slate-200 leading-relaxed font-sans whitespace-pre-wrap select-all">
+                                ${this.escapeHtml(opt.message)}
+                            </div>
+
+                            <div class="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80">
+                                <i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> <strong>대처 팁:</strong> ${this.escapeHtml(opt.tip)}
+                            </div>
+                        </div>
+
+                        <div class="pt-4 mt-2 border-t border-slate-800/60 flex items-center space-x-2">
+                            <button onclick="app.copyText('${this.escapeHtmlForAttr(opt.message)}')" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all border border-slate-700 flex items-center justify-center">
+                                <i class="fa-solid fa-copy mr-1.5"></i> 복사
+                            </button>
+                            <button onclick="app.confirmAndSaveExcuse(${idx})" class="flex-1 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all shadow-md shadow-brand-600/20 flex items-center justify-center">
+                                <i class="fa-solid fa-check mr-1.5"></i> 이 핑계 사용
+                            </button>
+                        </div>
+                    `;
+                    cardsContainer.appendChild(card);
+                });
+
+                document.getElementById('risk-analysis-text').innerText = data.riskAnalysis;
+                document.getElementById('recommended-next-step').innerText = data.recommendedNextStep;
+            },
+
+            copyText: function(text) {
+                // Fallback copy for iframe environment
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    this.showToast('클립보드에 핑계 문장이 복사되었습니다!');
+                } catch (err) {
+                    this.showToast('복사에 실패했습니다.');
+                }
+                document.body.removeChild(textarea);
+            },
+
+            confirmAndSaveExcuse: async function(optionIndex) {
+                if (!window.appState.userId) {
+                    this.showToast('사용자 식별 중입니다. 잠시 후 다시 시도해 주세요.');
+                    return;
+                }
+
+                const selectedOpt = window.appState.generatedOptions.options[optionIndex];
+                const wData = window.appState.wizardData;
+
+                const historyRecord = {
+                    targetName: wData.targetName,
+                    relationship: wData.relationship,
+                    timeCategory: wData.time,
+                    category: wData.category,
+                    tone: wData.tone,
+                    usedExcuse: selectedOpt.message,
+                    excuseTypeTitle: selectedOpt.title,
+                    credibility: selectedOpt.credibility,
+                    createdAt: new Date().toISOString()
+                };
+
+                try {
+                    // RULE 1: STRICT PATHS /artifacts/{appId}/users/{userId}/{collectionName}
+                    const userHistoryRef = collection(db, 'artifacts', appId, 'users', window.appState.userId, 'excuse_history');
+                    await addDoc(userHistoryRef, historyRecord);
+
+                    this.showToast(`'${wData.targetName}'님에게 사용한 핑계가 기록에 저장되었습니다!`);
+                    
+                    // Switch to history view to confirm
+                    this.switchTab('history');
+                } catch(err) {
+                    console.error(err);
+                    this.showToast('히스토리 저장 실패: ' + err.message);
+                }
+            },
+
+            listenToHistory: function() {
+                if (!window.appState.userId) return;
+
+                // RULE 1: STRICT PATHS
+                // RULE 2: No complex queries; fetch simple collection and sort in JS
+                const userHistoryRef = collection(db, 'artifacts', appId, 'users', window.appState.userId, 'excuse_history');
+
+                onSnapshot(userHistoryRef, (snapshot) => {
+                    const records = [];
+                    snapshot.forEach(doc => {
+                        records.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    // Sort by createdAt descending in JS memory
+                    records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                    window.appState.history = records;
+                    this.renderHistoryUI();
+                }, (error) => {
+                    console.error("Firestore listener error:", error);
+                });
+            },
+
+            renderHistoryUI: function() {
+                const history = window.appState.history;
+                document.getElementById('stat-total-count').innerText = history.length;
+
+                const container = document.getElementById('history-list-container');
+                const filterContainer = document.getElementById('target-filter-pills');
+
+                // Generate Unique Targets
+                const targets = Array.from(new Set(history.map(h => h.targetName)));
+                
+                // Filter Pills
+                filterContainer.innerHTML = `
+                    <button onclick="app.filterHistoryByTarget(null)" class="px-3 py-1 rounded-full text-xs font-semibold bg-brand-600 text-white shrink-0">
+                        전체 보기 (${history.length})
+                    </button>
+                `;
+                targets.forEach(t => {
+                    const count = history.filter(h => h.targetName === t).length;
+                    const pill = document.createElement('button');
+                    pill.className = "px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 shrink-0";
+                    pill.innerText = `${t} (${count})`;
+                    pill.onclick = () => app.filterHistoryByTarget(t);
+                    filterContainer.appendChild(pill);
+                });
+
+                this.renderHistoryCards(history);
+            },
+
+            filterHistoryByTarget: function(targetName) {
+                if (!targetName) {
+                    this.renderHistoryCards(window.appState.history);
+                } else {
+                    const filtered = window.appState.history.filter(h => h.targetName === targetName);
+                    this.renderHistoryCards(filtered);
+                }
+            },
+
+            renderHistoryCards: function(records) {
+                const container = document.getElementById('history-list-container');
+                container.innerHTML = '';
+
+                if (records.length === 0) {
+                    container.innerHTML = `
+                        <div class="glass-card p-8 rounded-2xl text-center text-slate-500 text-xs">
+                            저장된 핑계 이력이 없습니다.
+                        </div>
+                    `;
+                    return;
+                }
+
+                records.forEach(r => {
+                    const dateStr = new Date(r.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const card = document.createElement('div');
+                    card.className = "glass-card p-4 rounded-xl border border-slate-800 flex flex-col space-y-2";
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-white">${this.escapeHtml(r.targetName)}</span>
+                                <span class="text-[10px] text-slate-400 px-2 py-0.5 rounded bg-slate-800">${this.escapeHtml(r.relationship)}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500">${dateStr}</span>
+                        </div>
+                        <p class="text-xs text-slate-200 bg-slate-950/50 p-3 rounded-lg border border-slate-800/80 leading-relaxed font-sans">
+                            ${this.escapeHtml(r.usedExcuse)}
+                        </p>
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                            <span>테마: <strong class="text-slate-300">${this.escapeHtml(r.category)}</strong></span>
+                            <span>신뢰도: <strong class="text-emerald-400">${r.credibility}%</strong></span>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            },
+
+            // Utility Toast Notification
+            showToast: function(msg) {
+                const toast = document.createElement('div');
+                toast.className = "fixed bottom-5 right-5 z-50 bg-slate-800 text-white text-xs font-semibold px-4 py-3 rounded-xl border border-slate-700 shadow-2xl transition-all duration-300 transform translate-y-2 opacity-0 flex items-center space-x-2";
+                toast.innerHTML = `<i class="fa-solid fa-circle-info text-brand-400"></i><span>${this.escapeHtml(msg)}</span>`;
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-2', 'opacity-0');
+                }, 10);
+
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            },
+
+            escapeHtml: function(str) {
+                if(!str) return '';
+                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            },
+
+            escapeHtmlForAttr: function(str) {
+                if(!str) return '';
+                return str.replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ");
+            }
+        };
+
+        // Initialize App on DOM Ready
+        window.addEventListener('DOMContentLoaded', () => {
+            window.app.init();
+        });
+    </script>
+</body>
+</html>
